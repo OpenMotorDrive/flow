@@ -22,6 +22,9 @@ uavcan_allocatee \
 uavcan_restart \
 freemem_check \
 uavcan_debug \
+flash \
+param \
+uavcan_param_interface \
 driver_vl53l1x
 
 MESSAGES_ENABLED = \
