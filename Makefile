@@ -25,7 +25,9 @@ uavcan_debug \
 flash \
 param \
 uavcan_param_interface \
-driver_vl53l1x
+driver_vl53l1x \
+spi_device \
+driver_pmw3901mb
 
 MESSAGES_ENABLED = \
 uavcan.protocol.debug.LogMessage
