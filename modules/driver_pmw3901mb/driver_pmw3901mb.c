@@ -6,47 +6,35 @@
 bool pmw3901mb_motion_detected(struct pmw3901mb_instance_s* instance)
 {
     bool motion_detected = false;
+    
     uint8_t motion_reg = pmw3901mb_read(instance, PMW3901MB_MOTION);
-    uavcan_send_debug_keyvalue("motion_reg", motion_reg);
-    if ((motion_reg & 0x80) == 0)
+    if (motion_reg & 0x80)
         motion_detected = true;
     
     return motion_detected;
 }
 
-uint16_t pmw3901mb_read_dx(struct pmw3901mb_instance_s* instance)
+int16_t pmw3901mb_read_dx(struct pmw3901mb_instance_s* instance)
 {
-    uint8_t reg_dx_low = PMW3901MB_DELTA_X_L;
-    uint8_t reg_dx_high = PMW3901MB_DELTA_X_H;
-    uint16_t dx = 0;
-    spi_device_begin(&instance->spi_dev);
-    spi_device_send(&instance->spi_dev, 1, &reg_dx_low);
-    chThdSleepMicroseconds(PMW3901MB_TSRAD_US);
-    spi_device_receive(&instance->spi_dev, 1, &dx+1);
-    chThdSleepMicroseconds(PMW3901MB_TSR_US);
-    spi_device_send(&instance->spi_dev, 1, &reg_dx_high);
-    chThdSleepMicroseconds(PMW3901MB_TSRAD_US);
-    spi_device_receive(&instance->spi_dev, 1, &dx);
-    chThdSleepMicroseconds(PMW3901MB_TSR_US);
-    spi_device_end(&instance->spi_dev);
+    int16_t dx = 0;
+    uint8_t value = 0;
+    
+    value = pmw3901mb_read(instance, PMW3901MB_DELTA_X_L);
+    dx = (uint16_t)value << 8;
+    dx += pmw3901mb_read(instance, PMW3901MB_DELTA_X_H);
+    
     return dx;
 }
 
-uint16_t pmw3901mb_read_dy(struct pmw3901mb_instance_s* instance)
+int16_t pmw3901mb_read_dy(struct pmw3901mb_instance_s* instance)
 {
-    uint8_t reg_dy_low = PMW3901MB_DELTA_Y_L;
-    uint8_t reg_dy_high = PMW3901MB_DELTA_Y_H;
-    uint16_t dy = 0;
-    spi_device_begin(&instance->spi_dev);
-    spi_device_send(&instance->spi_dev, 1, &reg_dy_low);
-    chThdSleepMicroseconds(PMW3901MB_TSRAD_US);
-    spi_device_receive(&instance->spi_dev, 1, &dy+1);
-    chThdSleepMicroseconds(PMW3901MB_TSR_US);
-    spi_device_send(&instance->spi_dev, 1, &reg_dy_high);
-    chThdSleepMicroseconds(PMW3901MB_TSRAD_US);
-    spi_device_receive(&instance->spi_dev, 1, &dy);
-    chThdSleepMicroseconds(PMW3901MB_TSR_US);
-    spi_device_end(&instance->spi_dev);
+    int16_t dy = 0;
+    uint8_t value = 0;
+    
+    value = pmw3901mb_read(instance, PMW3901MB_DELTA_Y_L);
+    dy = (uint16_t)value << 8;
+    dy += pmw3901mb_read(instance, PMW3901MB_DELTA_Y_H);
+    
     return dy;
 }
 
@@ -68,7 +56,8 @@ uint8_t pmw3901mb_read(struct pmw3901mb_instance_s* instance, uint8_t reg)
     spi_device_send(&instance->spi_dev, 1, &reg);
     chThdSleepMicroseconds(PMW3901MB_TSRAD_US);
     spi_device_receive(&instance->spi_dev, 1, &value);
-    chThdSleepMicroseconds(PMW3901MB_TSR_US); 
+    spi_device_end(&instance->spi_dev);
+    chThdSleepMicroseconds(PMW3901MB_TSR_US);
     
     return value;
 }
@@ -172,6 +161,8 @@ bool pmw3901mb_init(struct pmw3901mb_instance_s* instance, uint8_t spi_idx, uint
     
     uint8_t who = pmw3901mb_read(instance, PMW3901MB_PRODUCT_ID);
     uavcan_send_debug_keyvalue("who", who);
+    uint8_t who_inverse = pmw3901mb_read(instance, PMW3901MB_INVERSE_PRODUCT_ID);
+    uavcan_send_debug_keyvalue("who inverse", who_inverse);
     
     return true;
 }

@@ -25,13 +25,13 @@ static void can_flow_test_task_func(struct worker_thread_timer_task_s* task);
 
 
 RUN_AFTER(INIT_END) {
-    i2cStart(&I2CD2, &i2cconfig);
     
+    // initialize VL53L1 lidar
+    i2cStart(&I2CD2, &i2cconfig);
     vl53l1x.bus = &I2CD2;
     vl53l1x.i2c_address = 0x29;
     
     VL53L1_Error status;
-    
     status = VL53L1_WaitDeviceBooted(&vl53l1x);
     //uavcan_send_debug_msg(UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_DEBUG, "", "%u %u", __LINE__, status);
     status = VL53L1_DataInit(&vl53l1x);
@@ -47,36 +47,31 @@ RUN_AFTER(INIT_END) {
     status = VL53L1_StartMeasurement(&vl53l1x);
     //uavcan_send_debug_msg(UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_DEBUG, "", "%u %u", __LINE__, status);
 
+    // initialize PMW3901MB optical flow
     pmw3901mb_init(&pmw3901mb, FLOW_SPI_BUS, BOARD_PAL_LINE_SPI_CS_FLOW, PMW3901MB_TYPE_V1);
-        
+    
+    // run can flow test on timer
     worker_thread_add_timer_task(&WT, &can_flow_test_task, can_flow_test_task_func, NULL, MS2ST(100), true);
 }
 
 static void can_flow_test_task_func(struct worker_thread_timer_task_s* task) {
-    
-    uavcan_send_debug_keyvalue("task", 1);  // just so I know if I'm getting back here 10 hz
 
     // get PMW3901MB motion report
-    bool motion = pmw3901mb_motion_detected(&pmw3901mb);
-    uavcan_send_debug_keyvalue("motion", motion); 
-    return; // just getting read of motion register for now!
-    
-    if (motion) {
+    if (pmw3901mb_motion_detected(&pmw3901mb)) {
         struct pmw3901mb_motion_report_s motion;
         motion.delta_x = pmw3901mb_read_dx(&pmw3901mb);
         motion.delta_y = pmw3901mb_read_dy(&pmw3901mb);
         motion.squal = pmw3901mb_read(&pmw3901mb, PMW3901MB_SQUAL);
         motion.shutter_upper = pmw3901mb_read(&pmw3901mb, PMW3901MB_SHUTTER_UPPER);
         if (motion.squal < 0x19 && motion.shutter_upper == 0x1f) {
-            uavcan_send_debug_msg(UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_DEBUG, "false motion", "%u %u", __LINE__, 0);
+            uavcan_send_debug_msg(UAVCAN_PROTOCOL_DEBUG_LOGLEVEL_DEBUG, "false motion detected", "%u %u", __LINE__, 0);
             return;
         }
-        
         uavcan_send_debug_keyvalue("dx", motion.delta_x);
         uavcan_send_debug_keyvalue("dy", motion.delta_y);
     }
 
-    return;
+    return; // lidar locks up system currently
         
     // get VL53L1 range measurement
     VL53L1_Error status;
