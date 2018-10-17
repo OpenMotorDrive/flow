@@ -35,6 +35,7 @@ VL53L1_Error VL53L1_GetTickCount(uint32_t *ptick_count_ms)
 VL53L1_Error VL53L1_RdByte(VL53L1_DEV dev, uint16_t index, uint8_t *data) {
     uint8_t tx_buf[2] = {index >> 8, index&0xFF};
         
+    chThdSleepMicroseconds(1300);
     if (i2cMasterTransmitTimeout(dev->bus, dev->i2c_address, tx_buf, sizeof(tx_buf), data, 1, TIME_INFINITE) != I2C_NO_ERROR) {
         return VL53L1_ERROR_CONTROL_INTERFACE;
     }
@@ -42,9 +43,15 @@ VL53L1_Error VL53L1_RdByte(VL53L1_DEV dev, uint16_t index, uint8_t *data) {
     return VL53L1_ERROR_NONE;
 }
 
+VL53L1_Error VL53L1_WrByte(VL53L1_DEV dev, uint16_t index, uint8_t data) {
+    
+    return VL53L1_WriteMulti(dev, index, &data, 1);
+}
+
 VL53L1_Error VL53L1_ReadMulti(VL53L1_DEV dev, uint16_t index, uint8_t *pdata, uint32_t count) {
     uint8_t tx_buf[2] = {index >> 8, index&0xFF};
     
+    chThdSleepMicroseconds(1300);
     if (i2cMasterTransmitTimeout(dev->bus, dev->i2c_address, tx_buf, sizeof(tx_buf), pdata, count, TIME_INFINITE) != I2C_NO_ERROR) {
         return VL53L1_ERROR_CONTROL_INTERFACE;
     }
@@ -63,6 +70,7 @@ VL53L1_Error VL53L1_WriteMulti(VL53L1_DEV dev, uint16_t index, uint8_t *pdata, u
     tx_buf[1] = index&0xFF;
     memcpy(&tx_buf[2], pdata, count);
     
+    chThdSleepMicroseconds(1300);
     if (i2cMasterTransmitTimeout(dev->bus, dev->i2c_address, tx_buf, count+2, NULL, 0, TIME_INFINITE) != I2C_NO_ERROR) {
         return VL53L1_ERROR_CONTROL_INTERFACE;
     }
@@ -74,6 +82,7 @@ VL53L1_Error VL53L1_RdWord(VL53L1_DEV dev, uint16_t index, uint16_t *data) {
     uint8_t tx_buf[2] = {index >> 8, index&0xFF};
     uint8_t rx_buf[2];
 
+    chThdSleepMicroseconds(1300);
     if (i2cMasterTransmitTimeout(dev->bus, dev->i2c_address, tx_buf, sizeof(tx_buf), rx_buf, sizeof(rx_buf), TIME_INFINITE) != I2C_NO_ERROR) {
         return VL53L1_ERROR_CONTROL_INTERFACE;
     }

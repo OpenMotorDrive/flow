@@ -3,6 +3,36 @@
 #include <common/bswap.h>
 #include <modules/uavcan_debug/uavcan_debug.h>
 
+// void pmw3901_get_motion(struct pmw3901mb_instance_s* instance, uint16_t* motion_x, uint16_t* motion_y) {
+//     
+//     *motion_x = 0;
+//     *motion_y = 0;
+//     
+//     spi_device_begin(&instance->spi_dev);
+//     uint8_t motion_reg = PMW3901MB_MOTION;
+//     spi_device_send(&instance->spi_dev, 1, &motion_reg);
+//     spi_device_receive(&instance->spi_dev, 1, &motion_reg);
+//     if (motion_reg & 0x80) {
+//         
+//     }
+//     spi_device_end(&instance->spi_dev);
+// }
+// 
+
+
+ bool pmw3901mb_burst_read(struct pmw3901mb_instance_s* instance, struct pmw3901mb_motion_report_s* ret) {    
+    spi_device_begin(&instance->spi_dev);
+    const uint8_t motion_burst = PMW3901MB_MOTION_BURST;
+    spi_device_send(&instance->spi_dev, 1, &motion_burst);
+    spi_device_receive(&instance->spi_dev, sizeof(*ret), ret);
+    spi_device_end(&instance->spi_dev);
+    
+    ret->delta_x = le16_to_cpu(ret->delta_x);
+    ret->delta_y = le16_to_cpu(ret->delta_y);
+    
+    return ret->motion & 0x80;
+}
+
 bool pmw3901mb_motion_detected(struct pmw3901mb_instance_s* instance)
 {
     bool motion_detected = false;
@@ -19,9 +49,9 @@ int16_t pmw3901mb_read_dx(struct pmw3901mb_instance_s* instance)
     int16_t dx = 0;
     uint8_t value = 0;
     
-    value = pmw3901mb_read(instance, PMW3901MB_DELTA_X_L);
+    value = pmw3901mb_read(instance, PMW3901MB_DELTA_X_H);
     dx = (uint16_t)value << 8;
-    dx += pmw3901mb_read(instance, PMW3901MB_DELTA_X_H);
+    dx += pmw3901mb_read(instance, PMW3901MB_DELTA_X_L);
     
     return dx;
 }
@@ -31,9 +61,9 @@ int16_t pmw3901mb_read_dy(struct pmw3901mb_instance_s* instance)
     int16_t dy = 0;
     uint8_t value = 0;
     
-    value = pmw3901mb_read(instance, PMW3901MB_DELTA_Y_L);
+    value = pmw3901mb_read(instance, PMW3901MB_DELTA_Y_H);
     dy = (uint16_t)value << 8;
-    dy += pmw3901mb_read(instance, PMW3901MB_DELTA_Y_H);
+    dy += pmw3901mb_read(instance, PMW3901MB_DELTA_Y_L);
     
     return dy;
 }
