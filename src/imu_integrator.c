@@ -16,7 +16,10 @@ struct pubsub_topic_s imu_deltas_topic;
 static float x[2][7];
 static uint8_t x_idx;
 
-static float dt = 1/8000.0;
+static systime_t last_publish;
+static uint32_t raw_meas_count;
+static const float publish_interval = 1.0/5.0;
+static float dt = 1/32000.0;
 static float dt_sum;
 
 static struct worker_thread_listener_task_s raw_imu_listener_task;
@@ -59,7 +62,6 @@ static void delta_publisher_func(size_t msg_size, void* buf, void* ctx) {
     
     memset(x,0,sizeof(x));
     x[x_idx][0] = 1;
-    dt_sum = 0;
 }
 
 static void raw_imu_handler(size_t msg_size, const void* buf, void* ctx) {
@@ -77,9 +79,19 @@ static void raw_imu_handler(size_t msg_size, const void* buf, void* ctx) {
     integrate(x[prev_x_idx], omega, accel, dt, x[x_idx]);
     
     dt_sum += dt;
+    raw_meas_count++;
 
-    if (dt_sum >= (1./20.)) {
+    if (dt_sum >= publish_interval) {
         pubsub_publish_message(&imu_deltas_topic, sizeof(struct imu_delta_s), delta_publisher_func, NULL);
+
+        const systime_t tnow = chVTGetSystemTimeX();
+        const float dt_meas = (tnow-last_publish)/(float)CH_CFG_ST_FREQUENCY/(float)raw_meas_count;
+
+        const float alpha = publish_interval/(publish_interval+10.0);
+        dt += (dt_meas-dt)*alpha;
+        dt_sum = 0;
+        raw_meas_count = 0;
+        last_publish = tnow;
     }
 }
 
