@@ -18,7 +18,7 @@ static uint8_t x_idx;
 
 static systime_t last_publish;
 static uint32_t raw_meas_count;
-static const float publish_interval = 1.0/5.0;
+static const float publish_interval = 1.0/20.0;
 static float dt = 1/32000.0;
 static float dt_sum;
 
