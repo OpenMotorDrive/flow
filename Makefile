@@ -39,7 +39,8 @@ stack_measurement
 MESSAGES_ENABLED = \
 uavcan.protocol.debug.LogMessage \
 com.hex.equipment.flow.Measurement \
-uavcan.equipment.range_sensor.Measurement
+uavcan.equipment.range_sensor.Measurement \
+uavcan.equipment.ahrs.RawIMU
 
 VENDOR_DSDL_NAMESPACE_DIRS = ./dsdl/com
 

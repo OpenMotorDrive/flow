@@ -1,6 +1,7 @@
 #include <imu_reader.h>
 #include <imu_integrator.h>
 #include <modules/worker_thread/worker_thread.h>
+#include <modules/param/param.h>
 #include <math.h>
 #include <string.h>
 
@@ -16,9 +17,12 @@ struct pubsub_topic_s imu_deltas_topic;
 static float x[2][7];
 static uint8_t x_idx;
 
+PARAM_DEFINE_FLOAT32_PARAM_STATIC(update_rate, "UPDATE_RATE", 20.0f, 1.0f, 1000.0f)
+
+extern bool imu_integrator_trigger;
+
 static systime_t last_publish;
 static uint32_t raw_meas_count;
-static const float publish_interval = 1.0/20.0;
 static float dt = 1/32000.0;
 static float dt_sum;
 
@@ -33,6 +37,7 @@ RUN_ON(PUBSUB_TOPIC_INIT) {
 RUN_ON(INIT_END) {
     memset(x,0,sizeof(x));
     x[x_idx][0] = 1;
+    imu_integrator_trigger = false;
     worker_thread_add_listener_task(&WT, &raw_imu_listener_task, &invensense_raw_sample_topic, raw_imu_handler, NULL);
 }
 
@@ -81,7 +86,9 @@ static void raw_imu_handler(size_t msg_size, const void* buf, void* ctx) {
     dt_sum += dt;
     raw_meas_count++;
 
-    if (dt_sum >= publish_interval) {
+    const float publish_interval = 1.0/update_rate;
+
+    if (imu_integrator_trigger) {
         pubsub_publish_message(&imu_deltas_topic, sizeof(struct imu_delta_s), delta_publisher_func, NULL);
 
         const systime_t tnow = chVTGetSystemTimeX();
@@ -92,6 +99,7 @@ static void raw_imu_handler(size_t msg_size, const void* buf, void* ctx) {
         dt_sum = 0;
         raw_meas_count = 0;
         last_publish = tnow;
+        imu_integrator_trigger = false;
     }
 }
 

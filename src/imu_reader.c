@@ -30,7 +30,7 @@ RUN_ON(PUBSUB_TOPIC_INIT) {
 RUN_AFTER(INIT_END) {
     invensense_init(&invensense, 3, BOARD_PAL_LINE_SPI_CS_ICM, INVENSENSE_IMU_TYPE_ICM20602);
 
-    worker_thread_add_timer_task(&WT, &invensense_read_task, invensense_read_task_func, NULL, LL_MS2ST(1), true);
+    worker_thread_add_timer_task(&WT, &invensense_read_task, invensense_read_task_func, NULL, LL_US2ST(200), true);
 }
 
 static void invensense_read_task_func(struct worker_thread_timer_task_s* task) {
